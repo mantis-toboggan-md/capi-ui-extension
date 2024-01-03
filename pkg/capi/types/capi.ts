@@ -17,49 +17,66 @@ export const CP_VERSIONS = {
 export const CREDENTIALS_UPDATE_REQUIRED = ['aks'];
 export const CREDENTIALS_NOT_REQUIRED = ['docker'];
 export interface Worker {
-  name: String,
-  class: String
+  name: string,
+  class: string
+}
+
+export interface ResourceReferece {
+  apiVersion?: string,
+  fieldPath?: string,
+  kind?: string,
+  name?: string,
+  namespace?: string,
+  resourceVersion?: string,
+  uid?: string
 }
 
 export interface CAPIClusterTopology {
-    version: String,
-    class: String,
+    version: string,
+    class: string,
     workers: {
       machineDeployments: Worker[],
       machinePools: Worker[]
     }
 }
 export interface CAPIClusterCPEndpoint {
-  host: String,
+  host: string,
   port: Number
 }
 
 export interface CAPIClusterNetwork {
   apiServerPort?: Number,
   pods?: {
-    cidrBlocks: String[]
+    cidrBlocks: string[]
   },
-  serviceDomain?: String,
+  serviceDomain?: string,
   services?: {
-    cidrBlocks: String[]
+    cidrBlocks: string[]
   },
 }
 
 export interface ClusterClass {
   metadata: {
-    name: String,
-    annotations: Object
+    name: string,
+    annotations: {
+      [key: string]: string
+    }
   },
   spec: {
-    infrastructure: Object,
-    workers: Object,
-    controlPlane: Object
+    infrastructure: {
+      ref: ResourceReferece
+    },
+    workers?: {
+      machineDeployments?: any[],
+      machinePools?: any[],
+    }
+    controlPlane?: any
   }
 }
 
 export interface InfrastructureProvider {
   metadata: {
-    name: String,
+    name: string,
     annotations: Object
   }
 }
