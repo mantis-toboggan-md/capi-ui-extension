@@ -1,5 +1,5 @@
 <script lang="ts">
-import { defineComponent } from 'vue';
+import Vue, { VueConstructor } from 'vue';
 import { SUB_TYPE } from '@shell/config/query-params';
 import { set } from '@shell/utils/object';
 import { DEFAULT_WORKSPACE } from '@shell/config/types';
@@ -10,7 +10,9 @@ import type { Route } from 'vue-router';
 import ClusterConfig from './ClusterConfig.vue';
 import { CAPI, QUERY_PARAMS, ClusterClass } from './../types/capi';
 
-export default defineComponent({
+export default (Vue as VueConstructor<
+  Vue & InstanceType<typeof CreateEditView>
+>).extend({
   name:       'CreateCluster',
   components: {
     CruResource,
@@ -30,9 +32,21 @@ export default defineComponent({
       default: 'capi-provider-create'
     }
   },
-  async fetch() {
-    this.clusterClasses = await this.getClusterClasses() || [];
+  // async fetch() {
+  //   this.clusterClasses = await this.getClusterClasses() || [];
 
+  //   if ( !this.value.spec ) {
+  //     set(this.value, 'spec', {});
+  //   }
+  //   if ( !this.value.id ) {
+  //     if ( !this.value.metadata ) {
+  //       set(this.value, 'metadata', {});
+  //     }
+
+  //     set(this.value.metadata, 'namespace', DEFAULT_WORKSPACE);
+  //   }
+  // },
+  beforeMount() {
     if ( !this.value.spec ) {
       set(this.value, 'spec', {});
     }
@@ -43,6 +57,12 @@ export default defineComponent({
 
       set(this.value.metadata, 'namespace', DEFAULT_WORKSPACE);
     }
+    this.getClusterClasses().then((cc: any[]) => {
+      this.clusterClasses = cc;
+      this.loading = false;
+    }).catch((err) => {
+      console.error(err); this.loading = false;
+    });
   },
   data() {
     const route = this.$route as Route;
@@ -50,7 +70,7 @@ export default defineComponent({
     const preselectedClass = route.query[QUERY_PARAMS.CLASS] || null;
 
     return {
-      subType, preselectedClass, capiProviders: [], clusterClasses: null
+      subType, preselectedClass, capiProviders: [], clusterClasses: [] as any[], loading: true
     };
   },
   computed: {
@@ -112,7 +132,7 @@ export default defineComponent({
 
 <template>
   <div>
-    <Loading v-if="$fetchState.pending" />
+    <Loading v-if="loading" />
     <ClusterConfig
       v-if="preselectedClass"
       v-model="value"
@@ -120,6 +140,7 @@ export default defineComponent({
       :live-value="liveValue"
       :mode="mode"
       :preselected-class="preselectedClass"
+      :cluster-classes="clusterClasses"
     />
     <CruResource
       v-else
@@ -142,6 +163,7 @@ export default defineComponent({
         :initial-value="initialValue"
         :live-value="liveValue"
         :mode="mode"
+        :cluster-classes="clusterClasses"
       />
 
       <template

@@ -1,5 +1,5 @@
 <script lang='ts'>
-import { defineComponent } from 'vue';
+import Vue, { VueConstructor } from 'vue';
 import { set, clone } from '@shell/utils/object';
 import { clear } from '@shell/utils/array';
 import LabeledInput from '@components/Form/LabeledInput/LabeledInput.vue';
@@ -35,7 +35,9 @@ const defaultCPEndpointConfig: CAPIClusterCPEndpoint = {
   port: 49152
 };
 
-export default defineComponent({
+export default (Vue as VueConstructor<
+  Vue & InstanceType<typeof CreateEditView>
+>).extend({
   name:       'ClusterConfig',
   components: {
     CruResource,
@@ -62,15 +64,25 @@ export default defineComponent({
       type:     String,
       required: false,
       default:  ''
+    },
+    clusterClasses: {
+      type:     Array,
+      required: true
     }
   },
-  async fetch() {
-    this.clusterClasses = await this.getClusterClasses() || [];
-    await this.initSpecs();
-    if ( this.preselectedClass) {
-      this.setClassInfo(this.preselectedClass);
-    }
+  beforeMount() {
+    this.initSpecs();
+    this.$nextTick(() => {
+      this.loading = false;
+    });
   },
+  // async fetch() {
+  //   this.clusterClasses = await this.getClusterClasses() || [];
+  //   await this.initSpecs();
+  //   if ( this.preselectedClass) {
+  //     this.setClassInfo(this.preselectedClass);
+  //   }
+  // },
   data() {
     const store = this.$store as {[key: string]: any};
     const t = store.getters['i18n/t'] as Translation;
@@ -117,7 +129,8 @@ export default defineComponent({
         class: ''
       },
       variablesReady:  false,
-      clusterClassObj: null
+      clusterClassObj: null,
+      loading:         true
     };
   },
   computed: {
@@ -197,11 +210,11 @@ export default defineComponent({
   methods: {
     set,
     generateYaml() {},
-    async getClusterClasses() {
-      const allClusterClasses: ClusterClass[] = await this.$store.dispatch('management/findAll', { type: CAPI.CLUSTER_CLASS });
+    // async getClusterClasses() {
+    //   const allClusterClasses: ClusterClass[] = await this.$store.dispatch('management/findAll', { type: CAPI.CLUSTER_CLASS });
 
-      return allClusterClasses;
-    },
+    //   return allClusterClasses;
+    // },
     setClassInfo(name: string) {
       this.clusterClassObj = this.clusterClasses.find((x: ClusterClass) => {
         const split = unescape(name).split('/');
@@ -311,7 +324,7 @@ export default defineComponent({
 });
 </script>
 <template>
-  <Loading v-if="$fetchState.pending" />
+  <Loading v-if="loading" />
   <CruResource
     v-else
     :mode="mode"
