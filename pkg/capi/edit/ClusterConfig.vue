@@ -107,9 +107,7 @@ export default (Vue as VueConstructor<
       ready:          true,
       weight:         30
     };
-    const steps = !!this.preselectedClass ? [stepConfiguration, stepVariables] : [stepClusterClass, stepConfiguration, stepVariables];
-
-    const addSteps = steps.sort((a, b) => (b.weight || 0) - (a.weight || 0));
+    const addSteps = !!this.preselectedClass ? [stepConfiguration, stepVariables] : [stepClusterClass, stepConfiguration, stepVariables];
 
     return {
       addSteps,
@@ -126,10 +124,30 @@ export default (Vue as VueConstructor<
       loading:         true
     };
   },
-  computed: {
-    version() {
-      return this.value.spec.topology.version;
+
+  watch: {
+    clusterClassObj(neu) {
+      const step = this.addSteps.find(s => s.name === 'stepClusterClass');
+
+      if (step) {
+        this.$set(step, 'ready', !!neu);
+      }
     },
+
+    stepConfigurationRequires(neu) {
+      const step = this.addSteps.find(s => s.name === 'stepConfiguration');
+
+      this.$set(step, 'ready', neu);
+    },
+
+    variablesReady(neu) {
+      const step = this.addSteps.find(s => s.name === 'stepVariables');
+
+      this.$set(step, 'ready', neu);
+    }
+  },
+
+  computed: {
     modeOptions() {
       return [{
         label: this.t('capi.cluster.secret.reuse'),
@@ -139,30 +157,22 @@ export default (Vue as VueConstructor<
         value: true,
       }];
     },
-    stepClusterClassRequires() {
-      return !!this.clusterClassObj;
-    },
     stepConfigurationRequires() {
       const nameValid = !!this.value.metadata.name;
       const versionTestString = versionTest(this.$store.getters['i18n/t'], this.controlPlane);
-      const versionValid = this.version && !!(this.version.match(versionTestString));
+      const versionValid = this.value?.spec?.topology?.version && !!(this.value?.spec?.topology?.version.match(versionTestString));
       const controlPlaneEndpointValid = !!this.value?.spec?.controlPlaneEndpoint?.host && !!this.value?.spec?.controlPlaneEndpoint?.port;
       const machineDeploymentsValid = this.value?.spec?.topology?.workers?.machineDeployments?.length > 0 && !!this.value?.spec?.topology?.workers?.machineDeployments[0]?.name && !!this.value?.spec?.topology?.workers?.machineDeployments[0]?.class;
       const machinePoolsValid = this.value?.spec?.topology?.workers?.machinePools?.length > 0 && !!this.value?.spec?.topology?.workers?.machinePools[0]?.name && !!this.value?.spec?.topology?.workers?.machinePools[0]?.class;
 
       return nameValid && versionValid && controlPlaneEndpointValid && (machineDeploymentsValid || machinePoolsValid);
     },
-    stepVariablesRequires() {
-      return !!this.variablesReady;
-    },
-
     clusterNetwork() {
       return this.value?.spec?.clusterNetwork;
     },
     controlPlaneEndpoint() {
       return this.value?.spec?.controlPlaneEndpoint;
     },
-
     machineDeploymentOptions() {
       return this.clusterClassObj?.spec?.workers?.machineDeployments?.map( (w: Worker) => w.class);
     },
@@ -254,32 +264,10 @@ export default (Vue as VueConstructor<
         this.setClassInfo(this.preselectedClass);
       }
     },
-
-    stepClusterClassReady() {
-      const step = this.addSteps.find(s => s.name === 'stepClusterClass');
-
-      this.$set(step, 'ready', this.stepClusterClassRequires);
-    },
-
-    stepConfigurationReady() {
-      const step = this.addSteps.find(s => s.name === 'stepConfiguration');
-
-      this.$set(step, 'ready', this.stepConfigurationRequires);
-    },
-    stepVariablesReady() {
-      const step = this.addSteps.find(s => s.name === 'stepVariables');
-
-      this.$set(step, 'ready', this.stepVariablesRequires);
-    },
-
     cancelCredential() {
       if ( this.$refs.cruresource ) {
         this.$refs.cruresource.emitOrRoute();
       }
-    },
-    validateVariables(neu: Boolean) {
-      this.variablesReady = neu;
-      this.stepVariablesReady();
     },
     cancel() {
       this.$router.push({
@@ -293,27 +281,10 @@ export default (Vue as VueConstructor<
         params: {},
       });
     },
-    machineDeploymentsChanged(val: Worker) {
-      this.set(this.value.spec.topology.workers, 'machineDeployments', val);
-      this.stepConfigurationReady();
-    },
-    machinePoolsChanged(val: Worker) {
-      this.set(this.value.spec.topology.workers, 'machinePools', val);
-      this.stepConfigurationReady();
-    },
-    cpEndpointHostChanged(val: String) {
-      this.set(this.value.spec.controlPlaneEndpoint, 'host', val);
-      this.stepConfigurationReady();
-    },
-    cpEndpointPortChanged(val: Number) {
-      this.set(this.value.spec.controlPlaneEndpoint, 'port', val);
-      this.stepConfigurationReady();
-    },
     clickedType(obj: {[key:string]: any}) {
       this.clusterClassObj = this.clusterClasses.find((x: ClusterClass) => x.metadata.name === obj.id);
       this.setClass();
       this.setNamespace();
-      this.stepClusterClassReady();
     },
     podsCidrBlocksChanged(val: string[]) {
       if ( !this.value.spec.clusterNetwork?.pods ) {
@@ -370,7 +341,6 @@ export default (Vue as VueConstructor<
         description-label="cluster.description.label"
         description-placeholder="cluster.description.placeholder"
         :rules="{name: nameRule}"
-        @change="stepConfigurationReady"
       />
       <div class="row mb-20 ">
         <div class="col span-3">
@@ -383,7 +353,6 @@ export default (Vue as VueConstructor<
             label-key="cluster.kubernetesVersion.label"
             required
             :rules="versionRule"
-            @input="stepConfigurationReady"
           />
         </div>
         <div class="col ">
@@ -393,7 +362,6 @@ export default (Vue as VueConstructor<
           <ControlPlaneEndpointSection
             v-model="controlPlaneEndpoint"
             :mode="mode"
-            @input="stepConfigurationReady"
           />
         </div>
       </div>
@@ -427,7 +395,6 @@ export default (Vue as VueConstructor<
               :default-add-value="defaultWorkerAddValue"
               :class-options="machineDeploymentOptions"
               :initial-empty-row="true"
-              @input="stepConfigurationReady"
             />
           </div>
           <div
@@ -441,7 +408,6 @@ export default (Vue as VueConstructor<
               :default-add-value="defaultWorkerAddValue"
               :class-options="machinePoolOptions"
               :initial-empty-row="true"
-              @input="stepConfigurationReady"
             />
           </div>
         </div>
@@ -454,7 +420,7 @@ export default (Vue as VueConstructor<
       <ClusterClassVariables
         v-model="value.spec.topology.variables"
         :cluster-class="clusterClassObj"
-        @validation-passed="validateVariables"
+        @validation-passed="e=>variablesReady=e"
       />
     </template>
   </CruResource>
