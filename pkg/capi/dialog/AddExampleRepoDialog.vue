@@ -17,7 +17,6 @@ const exampleRepo = {
     paths:                 [],
     pollingInterval:       '60s',
     repo:                  'https://github.com/rancher/turtles',
-    // TODO nb allow namespace picker
     targetNamespace:       NEW_NAMESPACE,
     targets:               [{
       clusterSelector: {
@@ -45,7 +44,7 @@ export default {
   components: {
     Checkbox,
     AsyncButton,
-    FleetSummary
+    FleetSummary,
   },
 
   async fetch() {
@@ -66,7 +65,7 @@ export default {
 
   data() {
     return {
-      gitRepo:      null,
+      gitRepo:      {},
       // if a namespace with the name NEW_NAMESPACE isn't found, one will be initialized and stored here
       newNamespace: null,
       repoOptions:  REPO_OPTIONS,
@@ -83,20 +82,7 @@ export default {
           type:        FLEET.BUNDLE,
           opt:         { excludeFields: ['metadata.managedFields', 'spec.resources'] },
         },
-
-      // allFleetClusters: {
-      //   inStoreType: 'management',
-      //   type:        FLEET.CLUSTER
-      // },
-      // clusterGroups: {
-      //   inStoreType: 'management',
-      //   type:        FLEET.CLUSTER_GROUP
-      // }
       }, this.$store);
-
-      // if (this.value.authorId && this.$store.getters['management/schemaFor'](MANAGEMENT.USER)) {
-      //   await this.$store.dispatch(`management/findAll`, { type: MANAGEMENT.USER }, { root: true });
-      // }
 
       this.allBundles = allDispatches.allBundles || [];
     },
@@ -140,11 +126,6 @@ export default {
     }
   },
 
-  // computed: {
-  //   bundles(){
-  //     return this.allBundles.filter()
-  //   }
-  // }
 };
 
 </script>
@@ -170,7 +151,7 @@ export default {
         :key="path"
       >
         <Checkbox
-          :value="gitRepo.spec.paths.includes(path)"
+          :value="gitRepo?.spec?.paths.includes(path)"
           :label="key"
           @update:value="e=> e ? addPath(path) : removePath(path)"
         />
