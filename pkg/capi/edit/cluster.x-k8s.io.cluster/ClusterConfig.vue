@@ -18,7 +18,6 @@ import WorkerItem from './WorkerItem.vue';
 import NetworkSection from './NetworkSection.vue';
 import ControlPlaneEndpointSection from './ControlPlaneEndpointSection.vue';
 import ControlPlaneSection from './ControlPlaneSection.vue';
-import Labels from '@shell/components/form/Labels.vue';
 import { mapGetters } from 'vuex';
 
 const defaultTopologyConfig = {
@@ -159,23 +158,23 @@ export default {
         cidr:    cidrValidator(this.t)
       };
     },
-    controlPlaneEndpointValid() {
-      const controlPlaneEndpointPortValid = !portValidator(this.t)(this.value?.spec?.controlPlaneEndpoint?.port);
-      const controlPlaneEndpointHostValid = !hostValidator(this.t)(this.value?.spec?.controlPlaneEndpoint?.host);
+    // controlPlaneEndpointValid() {
+    //   const controlPlaneEndpointPortValid = !portValidator(this.t)(this.value?.spec?.controlPlaneEndpoint?.port);
+    //   const controlPlaneEndpointHostValid = !hostValidator(this.t)(this.value?.spec?.controlPlaneEndpoint?.host);
 
-      return controlPlaneEndpointPortValid && controlPlaneEndpointHostValid;
-    },
-    controlPlaneValid() {
-      return !this.value?.spec?.topology?.controlPlane?.replicas || isNaN(this.value?.spec?.topology?.controlPlane?.replicas);
-    },
-    networkingValid() {
-      const hostValid = !hostValidator(this.t)(this.value?.spec?.clusterNetwork?.serviceDomain);
-      const portValid = !portValidator(this.t)(this.value?.spec?.clusterNetwork?.apiServerPort);
-      const podsValid = !this.value?.spec?.clusterNetwork?.pods?.cidrBlocks || cidrArrayValid(this.value.spec.clusterNetwork.pods.cidrBlocks);
-      const servicesValid = !this.value?.spec?.clusterNetwork?.services?.cidrBlocks || cidrArrayValid(this.value.spec.clusterNetwork.services.cidrBlocks);
+    //   return controlPlaneEndpointPortValid && controlPlaneEndpointHostValid;
+    // },
+    // controlPlaneValid() {
+    //   return !this.value?.spec?.topology?.controlPlane?.replicas || isNaN(this.value?.spec?.topology?.controlPlane?.replicas);
+    // },
+    // networkingValid() {
+    //   const hostValid = !hostValidator(this.t)(this.value?.spec?.clusterNetwork?.serviceDomain);
+    //   const portValid = !portValidator(this.t)(this.value?.spec?.clusterNetwork?.apiServerPort);
+    //   const podsValid = !this.value?.spec?.clusterNetwork?.pods?.cidrBlocks || cidrArrayValid(this.value.spec.clusterNetwork.pods.cidrBlocks);
+    //   const servicesValid = !this.value?.spec?.clusterNetwork?.services?.cidrBlocks || cidrArrayValid(this.value.spec.clusterNetwork.services.cidrBlocks);
 
-      return hostValid && portValid && podsValid && servicesValid;
-    },
+    //   return hostValid && portValid && podsValid && servicesValid;
+    // },
     machineDeploymentsValid() {
       if (this.value?.spec?.topology?.workers?.machineDeployments.length > 0) {
         this.value?.spec?.topology?.workers?.machineDeployments.forEach((deployment) => {
@@ -199,13 +198,11 @@ export default {
       return true;
     },
     stepConfigurationRequires() {
-      const nameValid = !!this.value.metadata.name;
+      // const nameValid = !!this.value.metadata.name;
 
-      const versionValid = this.value?.spec?.topology?.version && !versionValidator(this.t, this.clusterClassControlPlane)(this.value?.spec?.topology?.version);
+      // const versionValid = this.value?.spec?.topology?.version && !versionValidator(this.t, this.clusterClassControlPlane)(this.value?.spec?.topology?.version);
       const workersValid = ( this.value?.spec?.topology?.workers?.machinePools.length > 0 || this.value?.spec?.topology?.workers?.machineDeployments.length > 0) && this.machineDeploymentsValid && this.machinePoolsValid;
-      const formValid = nameValid && versionValid && this.controlPlaneEndpointValid && this.controlPlaneValid && this.networkingValid & workersValid;
-
-      console;
+      const formValid = this.fvFormIsValid & workersValid;
 
       return formValid;
     },
@@ -391,7 +388,7 @@ export default {
         description-label="cluster.description.label"
         description-placeholder="cluster.description.placeholder"
         :rules="{name:fvGetAndReportPathRules('metadata.name')}"
-        @update:value="$emit('update:value', {k: 'metadata', val: $event.metadata})"
+        @update:value="e=>value.metadata.name = e"
       />
       <div class="row mb-20">
         <div class="col col-config span-4 mt-20">
@@ -399,7 +396,7 @@ export default {
             <t k="capi.cluster.version.title" />
           </h2>
           <LabeledInput
-            :value="value.spec.topology.version"
+            v-model:value="value.spec.topology.version"
             :mode="mode"
             label-key="cluster.kubernetesVersion.label"
             required
@@ -460,7 +457,7 @@ export default {
             class="row"
           >
             <WorkerItem
-              :value="machineDeployments"
+              v-model:value="machineDeployments"
               :mode="mode"
               :title="t('capi.cluster.workers.machineDeployments.title')"
               :default-add-value="defaultWorkerAddValue"
@@ -474,7 +471,7 @@ export default {
             class="row"
           >
             <WorkerItem
-              :value="machinePools"
+              v-model:value="machinePools"
               :mode="mode"
               :title="t('capi.cluster.workers.machinePools.title')"
               :default-add-value="defaultWorkerAddValue"
@@ -497,7 +494,7 @@ export default {
         <t k="capi.cluster.variables.title" />
       </h2>
       <ClusterClassVariables
-        :value="value.spec.topology.variables"
+        v-model:value="value.spec.topology.variables"
         :cluster-class="clusterClassObj"
         @validation-passed="e=>variablesReady=e"
         @update:value="$emit('update:value', {k: 'spec.topology.variables', val: $event})"
