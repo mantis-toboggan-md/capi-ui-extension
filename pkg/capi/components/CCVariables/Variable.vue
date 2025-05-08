@@ -185,17 +185,17 @@ export default {
     v-if="componentForType"
     :class="{'wider': isListComponent, 'widest': isYamlKeyValueComponent || isYamlComponent, 'align-center': componentForType?.name==='checkbox-var', [`${componentForType.name}`]: true}"
   >
-    <div
+    <label
       v-if="isYamlComponent"
       :for="componentForType.name"
-      class="input-label"
+      class="text-label"
     >
       {{ variable.name }}
       <span
         v-if="variable.required"
         class="text-error"
       >*</span>
-    </div>
+    </label>
     <component
       :is="componentForType.component"
       v-if="componentForType"
